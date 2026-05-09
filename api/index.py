@@ -111,3 +111,48 @@ def quote_mama_money(
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "quote": quote
     }
+    def clean_institution(item, payout_type):
+    return {
+        "id": item.get("uniqueId") or item.get("id") or item.get("code"),
+        "name": item.get("name"),
+        "currency": item.get("currency"),
+        "payout_type": payout_type,
+        "min_receive_amount": item.get("minTxAmount"),
+        "max_receive_amount": item.get("maxTxAmount"),
+    }
+
+
+@app.get("/partners/mama-money/payout-methods/{country_code}")
+def get_mama_money_payout_methods(country_code: str):
+    country_code = country_code.upper().strip()
+    url = f"{MAMA_API_BASE}/institutions/preferred/{country_code}"
+
+    try:
+        response = requests.get(url, headers=mama_headers(), timeout=15)
+        response.raise_for_status()
+    except requests.RequestException as error:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not fetch Mama Money payout methods: {str(error)}"
+        )
+
+    data = response.json()
+    payout_methods = []
+
+    for item in data.get("walletInstitutions", []):
+        payout_methods.append(clean_institution(item, "wallet"))
+
+    for item in data.get("bankInstitutions", []):
+        payout_methods.append(clean_institution(item, "bank"))
+
+    for item in data.get("cashInstitutions", []):
+        payout_methods.append(clean_institution(item, "cash"))
+
+    return {
+        "success": True,
+        "provider": "Mama Money",
+        "country_code": country_code,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "total_methods": len(payout_methods),
+        "payout_methods": payout_methods
+    }
