@@ -158,7 +158,9 @@ def get_mama_money_payout_methods(country_code: str):
         "total_methods": len(payout_methods),
         "payout_methods": payout_methods
     }
-    @app.get("/partners/mama-money/quote-all")
+
+
+@app.get("/partners/mama-money/quote-all")
 def quote_all_mama_money_methods(
     country_code: str = Query(...),
     amount: float = Query(..., gt=0)
