@@ -158,3 +158,67 @@ def get_mama_money_payout_methods(country_code: str):
         "total_methods": len(payout_methods),
         "payout_methods": payout_methods
     }
+    @app.get("/partners/mama-money/quote-all")
+def quote_all_mama_money_methods(
+    country_code: str = Query(...),
+    amount: float = Query(..., gt=0)
+):
+    country_code = country_code.upper().strip()
+
+    methods_response = get_mama_money_payout_methods(country_code)
+    methods = methods_response.get("payout_methods", [])
+
+    quotes = []
+    errors = []
+
+    for method in methods:
+        method_id = method.get("id")
+
+        if not method_id:
+            continue
+
+        try:
+            quote = get_mama_money_quote(method_id, amount)
+
+            quotes.append({
+                "method_id": method_id,
+                "method_name": method.get("name"),
+                "payout_type": method.get("payout_type"),
+                "min_receive_amount": method.get("min_receive_amount"),
+                "max_receive_amount": method.get("max_receive_amount"),
+                "quote": quote
+            })
+
+        except Exception as error:
+            errors.append({
+                "method_id": method_id,
+                "method_name": method.get("name"),
+                "payout_type": method.get("payout_type"),
+                "error": str(error)
+            })
+
+    valid_quotes = [
+        item for item in quotes
+        if item.get("quote", {}).get("recipient_gets") is not None
+    ]
+
+    best_quote = None
+
+    if valid_quotes:
+        best_quote = max(
+            valid_quotes,
+            key=lambda item: item["quote"]["recipient_gets"]
+        )
+
+    return {
+        "success": True,
+        "provider": "Mama Money",
+        "country_code": country_code,
+        "send_amount": amount,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "total_methods_checked": len(methods),
+        "total_successful_quotes": len(valid_quotes),
+        "best_quote": best_quote,
+        "quotes": quotes,
+        "errors": errors
+    }
