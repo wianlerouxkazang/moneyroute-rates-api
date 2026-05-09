@@ -40,6 +40,17 @@ def mama_headers():
     }
 
 
+def clean_institution(item, payout_type):
+    return {
+        "id": item.get("uniqueId") or item.get("id") or item.get("code"),
+        "name": item.get("name"),
+        "currency": item.get("currency"),
+        "payout_type": payout_type,
+        "min_receive_amount": item.get("minTxAmount"),
+        "max_receive_amount": item.get("maxTxAmount"),
+    }
+
+
 def get_mama_money_quote(method: str, amount: float):
     method = method.upper().strip()
     url = f"{MAMA_API_BASE}/quote/{method}/send/{amount}"
@@ -110,15 +121,6 @@ def quote_mama_money(
         "provider": "Mama Money",
         "checked_at": datetime.now(timezone.utc).isoformat(),
         "quote": quote
-    }
-    def clean_institution(item, payout_type):
-    return {
-        "id": item.get("uniqueId") or item.get("id") or item.get("code"),
-        "name": item.get("name"),
-        "currency": item.get("currency"),
-        "payout_type": payout_type,
-        "min_receive_amount": item.get("minTxAmount"),
-        "max_receive_amount": item.get("maxTxAmount"),
     }
 
 
